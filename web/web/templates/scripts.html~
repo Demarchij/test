@@ -1,0 +1,17 @@
+    <!-- jQuery -->
+    <script src="{% static 'js/jquery.js' %}"></script>
+
+    <!-- Bootstrap Core JavaScript -->
+    <script src="{% static 'js/bootstrap.min.js' %}"></script>
+
+    <script> /*
+	$(function() {
+		$("#button_home").on('click', function() {
+			$(".carousel-holder").show();
+		});
+		$("#button_listview").on('click', function() {
+			$(".carousel-holder").hide();
+		});
+	}); */
+    </script>
+

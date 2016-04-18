@@ -1,0 +1,165 @@
+from django.shortcuts import render, render_to_response
+from django.http import JsonResponse, HttpResponseRedirect, HttpResponse
+from django.core.urlresolvers import reverse
+from django.contrib.auth import hashers
+from django.utils.html import strip_tags
+import urllib.request, urllib.parse, json
+from web import settings
+from web.forms import LoginForm, RegisterForm, ItemForm
+import re
+
+
+## verifies the auth key then returns an updated context 
+def verify_auth(request, context):
+	auth_key = request.COOKIES.get('auth_key')
+	if not auth_key: 
+		context["logged_in"] = False
+	else: 
+		data = urllib.parse.urlencode({'auth_key': auth_key})
+		url =  'http://' + settings.EXP_API + ':8000/api/auth/verify?%s' % data
+		req = urllib.request.Request(url)
+		resp_json = urllib.request.urlopen(req).read().decode('utf-8')
+		resp = json.loads(resp_json)
+		if (resp["ok"] == False):
+			logout(request)
+		if (resp["ok"] == True):
+			context["user_id"] = resp["resp"]["user_id"]
+			context["username"] = resp["resp"]["username"]
+			context["logged_in"] = True
+	return context
+
+def home(request):
+	context = {}
+	verify_auth(request, context)
+	item_req = urllib.request.Request('http://' + settings.EXP_API + ':8000/api/data/recent/6')
+	item_json = urllib.request.urlopen(item_req).read().decode('utf-8')
+	resp = json.loads(item_json)
+	context["items"] = resp["resp"]["items"]
+	context["location"] = "home"
+	return render(request, "index.html", context)
+
+def gallery(request):
+	context = {}
+	context = verify_auth(request, context)
+	if not context['logged_in']: return HttpResponseRedirect(reverse('home'))
+
+	# get all items that belong to the current user
+	data = urllib.parse.urlencode({'user_id': context['user_id']})
+	url = 'http://' + settings.EXP_API + ':8000/api/data/getItemsUserid?%s' % data
+	req = urllib.request.Request(url)
+	resp_json = urllib.request.urlopen(req).read().decode('utf-8')
+	resp = json.loads(resp_json)
+	if (resp["ok"] == False):
+		return HttpResponse (resp["error"])
+	context['items'] = resp['resp']['items']
+	return render(request, "gallery.html", context)
+
+def submit_item(request):
+	response = HttpResponseRedirect(reverse('gallery'))
+	if request.method != 'POST': return response
+	context = {}
+	context = verify_auth(request, context)
+	if not context['logged_in']: return HttpResponseRedirect(reverse('home'))
+	item_form = ItemForm(request.POST)
+	if not item_form.is_valid():
+		context['item_form'] = item_form
+		return render(request, 'gallery.html', context)
+	title = item_form.cleaned_data['title']
+	tags = item_form.cleaned_data['tags']
+	first_tag = re.match(r'[^,]+', tags).group()
+	filename = item_form.cleaned_data['filename']
+	desc = item_form.cleaned_data['description']
+	user_id = context['user_id']
+	data = urllib.parse.urlencode({'title':title, 'tags':first_tag, 'filename':filename, 'description':desc, 'user_id':user_id}).encode()
+	url = 'http://' + settings.EXP_API + ':8000/api/data/createItem' 
+	req = urllib.request.Request(url)
+	resp_json = urllib.request.urlopen(req, data=data).read().decode('utf-8')
+	resp = json.loads(resp_json)
+	if (resp["ok"] == False):
+		return HttpResponse (resp["error"])
+		return render(request, 'gallery.html', {"message": "Invalid username or password", 'item_form': item_form})
+	if (resp["ok"] == True):
+		return response
+
+def item_list(request):
+	context = {}
+	context = verify_auth(request, context)
+	allitem_req = urllib.request.Request('http://' + settings.EXP_API + ':8000/api/data/all')
+	allitem_json = urllib.request.urlopen(allitem_req).read().decode('utf-8')
+	all_resp = json.loads(allitem_json)
+	context["location"] = "item_list"
+	context["items"] = all_resp["resp"]["items"]
+	return render(request, "index.html", context)
+
+def login(request):
+	response = HttpResponseRedirect(reverse('home'))
+	if request.method != 'POST': return response
+	login_form = LoginForm(request.POST)
+	if not login_form.is_valid():
+		return render(request, 'index.html', {"message": "Invalid username or password", 'login_form': login_form})
+	username = login_form.cleaned_data['username']
+	password = login_form.cleaned_data['password']
+	data = urllib.parse.urlencode({'username': username, 'password': password})
+	url = 'http://' + settings.EXP_API + ':8000/api/auth/login?%s' % data
+	req = urllib.request.Request(url)
+	resp_json = urllib.request.urlopen(req).read().decode('utf-8')
+	resp = json.loads(resp_json)
+	if (resp["ok"] == False):
+		return render(request, 'index.html', {"message": "Invalid username or password", 'login_form': login_form})
+	if (resp["ok"] == True):
+		user_id = resp["resp"]["user_id"]
+		auth_key = resp["resp"]["auth_key"]
+		response.set_cookie("auth_key", auth_key)
+		return response
+
+def logout(request):
+	auth_key = request.COOKIES.get('auth_key')
+	response = HttpResponseRedirect(reverse('home'))
+	data = urllib.parse.urlencode({'auth_key': auth_key})
+	url = 'http://' + settings.EXP_API + ':8000/api/auth/delete?%s' % data
+	req = urllib.request.Request(url)
+	resp_json = urllib.request.urlopen(req).read().decode('utf-8')
+	resp = json.loads(resp_json)
+	response.delete_cookie("auth_key")
+	if (resp["ok"] == False): return render(request, 'index.html', {"message": "Unable to delete auth"})
+	return response
+
+def register(request):
+	response = HttpResponseRedirect(reverse('home'))
+	if request.method != 'POST': return response
+	register_form = RegisterForm(request.POST)
+	if not register_form.is_valid():
+		return render(request, 'index.html', {"message": "Missing registration parameters", 'register_form': register_form})
+	username = register_form.cleaned_data['username']
+	password = register_form.cleaned_data['password']
+	email = register_form.cleaned_data['email']
+	phone = 0
+	data = urllib.parse.urlencode({'username': username, 'password': password, 'email': email, 'phone': phone}).encode()
+	url = 'http://' + settings.EXP_API + ':8000/api/auth/register'
+	req = urllib.request.Request(url)
+	resp_json = urllib.request.urlopen(req, data=data).read().decode('utf-8')
+	resp = json.loads(resp_json)
+	if (resp["ok"] == False):
+		return render(request, 'index.html', {"message": "Unable to register", 'register_form': register_form})
+	if (resp["ok"] == True):
+		user_id = resp["resp"]["user_id"]
+		auth_key = resp["resp"]["auth_key"]
+		response.set_cookie("auth_key", auth_key)
+		return response
+	return response
+
+def search(request):
+	context = {}
+	context = verify_auth(request, context)
+	query = strip_tags(request.GET['search'] if 'search' in request.GET else "")
+	context['search_query'] = query
+	data = urllib.parse.urlencode({'search_query': query})
+	url = 'http://' + settings.EXP_API + ':8000/api/search/searchItems?%s' % data
+	req = urllib.request.Request(url)
+	resp_json = urllib.request.urlopen(req).read().decode('utf-8')
+	resp = json.loads(resp_json)
+	context['search_results'] = resp['resp']['search_results'] if (resp['ok'] == True) else None
+	return render(request, 'search.html', context)
+
+
+

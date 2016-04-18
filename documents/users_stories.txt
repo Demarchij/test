@@ -1,0 +1,8 @@
+As an user, I want to be able to see other people's art work and music. 
+As an user, I want to be able to upload my art work and music. 
+As an user, I want to be able to create a new account. 
+As an user, I want to be able to delete my account. 
+As an user, I want to be able to comment on art work and music. 
+As an user, I want to be able to see other people's comments about art and music. 
+As an user, I want to be able to to write a description of my art work or music. 
+As an user, I want to be able to see other poeple's descriptions of their art work or music. 

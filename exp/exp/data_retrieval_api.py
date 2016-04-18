@@ -1,0 +1,81 @@
+from django.http import JsonResponse
+import urllib.request, urllib.parse, json
+from exp import settings
+from elasticsearch import Elasticsearch
+from kafka import KafkaProducer
+
+def get_all_items(request):
+	req = urllib.request.Request('http://' + settings.MODELS_API + ':8000/api/v1/items/getAllItems')
+	resp_json = urllib.request.urlopen(req).read().decode('utf-8')
+	resp = json.loads(resp_json)
+	if (resp["ok"] == False): return _error_response(request, "Could not get items")
+	return _success_response(request, resp["resp"])
+
+
+def get_recent_items(request, quantity):
+	if int(quantity) < 0: return _error_response(request, "Value must be a positive integer")
+	req = urllib.request.Request('http://' + settings.MODELS_API + ':8000/api/v1/items/getRecent/' + str(quantity))
+	resp_json = urllib.request.urlopen(req).read().decode('utf-8')
+	resp = json.loads(resp_json)
+	if (resp["ok"] == False): return _error_response(request, "Could not get recent items")
+	return _success_response(request, resp["resp"])
+
+def get_items_of_user(request):
+	if request.method != 'GET': return _error_response(request, "must make GET request")
+	if 'user_id' not in request.GET: return _error_response(request, "missing user id for item lookup")
+	user_id = request.GET['user_id']
+	data = urllib.parse.urlencode({"user_id":user_id})
+	url = "http://" + settings.MODELS_API + ":8000/api/v1/items/getItemsUserid?%s" % data
+	req = urllib.request.Request(url)
+	resp_json = urllib.request.urlopen(req).read().decode('utf-8')
+	resp = json.loads(resp_json)
+	if (resp["ok"] == False): return _error_response(request, resp['error'])
+	if (resp["ok"] == True): return _success_response(request, resp['resp'])
+
+def create_item(request):
+	if request.method != 'POST': return _error_response(request, "must make POST request")
+	if 'title' not in request.POST or 'tags' not in request.POST or 'description' not in request.POST or 'filename' not in request.POST or 'user_id' not in request.POST:
+		return _error_response(request, "missing fields required for item creation")
+	user_id = request.POST['user_id']
+	title = request.POST['title']
+	tags = request.POST['tags']
+	desc = request.POST['description']
+	filename = request.POST['filename']
+	category = "none" if 'category' not in request.POST else request.POST['category']
+	size =  0 if 'size' not in request.POST else request.POST['size']
+	username = ""
+
+	# look up the username
+	#data = urllib.parse.urlencode({"user_id": user_id})
+	url = "http://" + settings.MODELS_API + ":8000/api/v1/users/" + user_id
+	req = urllib.request.Request(url)
+	resp_json = urllib.request.urlopen(req).read().decode('utf-8')
+	resp = json.loads(resp_json)
+	if (resp["ok"] == False): return _error_response(request, "User does not exist. How did you get this user ID?")
+	if (resp["ok"] == True): username = resp["resp"]["username"]
+	
+	# now request item creation
+	data = urllib.parse.urlencode({'title':title, 'tags':tags, 'filename':filename, 'description':desc, 'owner':username, 'size':size, 'category':category}).encode()
+	url = "http://" + settings.MODELS_API + ":8000/api/v1/items/create"
+	req = urllib.request.Request(url)
+	resp_json = urllib.request.urlopen(req, data=data).read().decode('utf-8')
+	resp = json.loads(resp_json)
+	item_id = None
+	if (resp["ok"] == False): 
+		return _error_response(request, resp['error'])
+	if (resp["ok"] == True):
+		item_id = resp["resp"]["item_id"]
+
+	# add the new item to a kafka topic (queue)
+	producer = KafkaProducer(bootstrap_servers='kafka:9092')
+	new_listing = {'title':title, 'tags':tags, 'category':category, 'id':item_id}
+	producer.send('items', json.dumps(new_listing).encode('utf-8'))
+
+	return _success_response(request, {"item_id": item_id})
+
+def _error_response(request, error_msg):
+    return JsonResponse({'ok': False, 'error': error_msg})
+
+def _success_response(request, resp=None):
+    if resp: return JsonResponse({'ok': True, 'resp': resp})
+    else: return JsonResponse({'ok': True})

@@ -1,0 +1,80 @@
+{% load staticfiles %}
+{% include 'head.html' %}
+
+<body>
+{% include 'nav.html' %}
+    <!-- Page Content -->
+    <div class="container">
+
+        <div class="row">
+
+            <div class="col-md-3">
+                <p class="lead" style="font-weight:bolder;color:#484848">THE ARTIST TREE</p>
+                <div class="list-group">
+                    <a href="/" class="list-group-item" id="button_home">Home </a>
+                    <a href="/list" class="list-group-item" id="button_listview">Item Listing</a>
+                    <a href="#" class="list-group-item">TODO</a>
+                </div>
+            </div>
+
+{% block itemlist %}
+
+            <div class="col-md-9">
+		<h1> Search results for query: "{{search_query}}" </h1>
+                </div>
+
+                <div class="row col-md-9" >
+		    {% for i in search_results %}
+                    <div class="col-sm-4 col-lg-4 col-md-4">
+                        <div class="thumbnail">
+                            <img src="{{ i.filename }}" alt="">
+                            <div class="caption">
+                                <h4 class="pull-right">{{ i.tags.0.token }}</h4>
+                                <h4><a href="#">{{ i.owner.username }}</a>
+                                </h4>
+                                <p> {{ i.title }} <hr style="margin: 0px; margin-bottom: 10px; padding: 0px;"> {{ i.description }} </p>
+                            </div>
+                            <div class="ratings">
+                                <p class="pull-right">15 approvals</p>
+                                <p>
+                                    <span class="glyphicon glyphicon-star"></span>
+                                    <span class="glyphicon glyphicon-star"></span>
+                                    <span class="glyphicon glyphicon-star"></span>
+                                    <span class="glyphicon glyphicon-star"></span>
+                                    <span class="glyphicon glyphicon-star"></span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+		{% endfor %}
+
+                </div>
+
+		{% endblock %}
+
+            </div>
+
+        </div>
+
+    </div>
+    <!-- /.container -->
+
+    <div class="container">
+
+        <hr>
+
+     {% include 'footer.html' %}
+
+    </div>
+    <!-- /.container -->
+
+     {% include 'scripts.html' %}
+
+    <script>
+
+    </script>
+
+</body>
+
+</html>

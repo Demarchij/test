@@ -1,0 +1,13 @@
+
+
+.dropdown-menu .col-sm-12{margin-bottom:7px;}
+.dropdown-menu:after{
+content: '';
+display: inline-block;
+border-left: 6px solid transparent;
+border-right: 6px solid transparent;
+border-bottom: 6px solid #ffffff;
+position: absolute;
+top: -6px;
+right: 10px;
+}

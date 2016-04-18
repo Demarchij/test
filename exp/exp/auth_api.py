@@ -1,0 +1,108 @@
+from django.http import JsonResponse, HttpResponse
+import urllib.request, urllib.parse, json
+from exp import settings
+
+
+def verify_auth(request): 
+	if request.method != 'GET': return _error_response(request, "must make GET request")
+	if 'auth_key' not in request.GET:
+		return _error_response(request, "auth key is required for auth verification")
+	auth_key = request.GET['auth_key']
+
+	data = urllib.parse.urlencode({"auth_key": auth_key})
+	url = "http://" + settings.MODELS_API + ":8000/api/v1/auth/verifyAuth?%s" % data
+	req = urllib.request.Request(url)
+	resp_json = urllib.request.urlopen(req).read().decode('utf-8')
+	resp = json.loads(resp_json)
+
+	if (resp["ok"] == False): 
+		return _error_response(request, "Invalid auth key")
+	if (resp["ok"] == True):
+		user_id = resp["resp"]["user_id"]
+		auth = resp["resp"]["auth_key"]
+		# get username
+		url = "http://" + settings.MODELS_API + ":8000/api/v1/users/" + str(user_id)
+		req = urllib.request.Request(url)
+		resp_json = urllib.request.urlopen(req).read().decode('utf-8')
+		resp = json.loads(resp_json)
+		if (resp["ok"] == False): 
+			return _error_response(request, resp['error'])
+		username = resp['resp']['username']
+		return _success_response(request, {"user_id": user_id, "auth_key": auth_key, "username": username})
+
+## returns an authenticator from models if the username and password pair are valid
+def login(request):
+	if request.method != 'GET': return _error_response(request, "must make GET request")
+	if 'username' not in request.GET or 'password' not in request.GET:
+		return _error_response(request, "login requires both username and password")
+	username = request.GET['username']
+	password = request.GET['password']
+
+	# verify username and password
+	data = urllib.parse.urlencode({"username": username, "password": password})
+	url = "http://" + settings.MODELS_API + ":8000/api/v1/auth/verifyUser?%s" % data
+	req = urllib.request.Request(url)
+	resp_json = urllib.request.urlopen(req).read().decode('utf-8')
+	resp = json.loads(resp_json)
+	user_id = None
+	auth_key = None
+	if (resp["ok"] == False): 
+		return _error_response(request, "User does not exist")
+	if (resp["ok"] == True):
+		user_id = resp["resp"]["user_id"]
+		auth_key = resp["resp"]["auth_key"]
+	return _success_response(request, {"user_id": user_id, "auth_key": auth_key})
+
+def logout(request):
+	if request.method != 'GET': return _error_response(request, "must make GET request")
+	if 'auth_key' not in request.GET: return _error_response(request, "auth key required for logout")
+	auth_key = request.GET['auth_key']
+	data = urllib.parse.urlencode({"auth_key": auth_key})
+	url = "http://" + settings.MODELS_API + ":8000/api/v1/auth/delete?%s" % data
+	req = urllib.request.Request(url)
+	resp_json = urllib.request.urlopen(req).read().decode('utf-8')
+	resp = json.loads(resp_json)
+	if (resp["ok"] == False): 
+		return _error_response(request, "Auth does not exist")
+	return _success_response(request, {"message":"Auth successfully deleted"})
+
+def register(request):
+	if request.method != 'POST': return _error_response(request, "must make POST request")
+	if 'username' not in request.POST or 'password' not in request.POST or 'email' not in request.POST:
+		return _error_response(request, "registration parameters incomplete")
+	username = request.POST['username']
+	password = request.POST['password']
+	email = request.POST['email']
+	phone = 0 if 'phone' not in request.POST else request.POST['phone']
+
+	# attempt to create a new user
+	data = urllib.parse.urlencode({"username": username, "password": password, 'email': email, 'phone': phone}).encode()
+	url = "http://" + settings.MODELS_API + ":8000/api/v1/users/create" 
+	req = urllib.request.Request(url)
+	resp_json = urllib.request.urlopen(req, data=data).read().decode('utf-8')
+	resp = json.loads(resp_json)
+	user_id = None
+	if (resp["ok"] == False): 
+		return _error_response(request, "User already exists")
+	if (resp["ok"] == True):
+		user_id = resp["resp"]["user_id"]
+	
+	# attempt to create an auth
+	data = urllib.parse.urlencode({"user_id": user_id}).encode()
+	url = "http://" + settings.MODELS_API + ":8000/api/v1/auth/create" 
+	req = urllib.request.Request(url)
+	resp_json = urllib.request.urlopen(req, data=data).read().decode('utf-8')
+	resp = json.loads(resp_json)
+	auth_key = None
+	if (resp["ok"] == False): 
+		return _error_response(request, "User was created, but an auth could not be assigned")
+	if (resp["ok"] == True):
+		auth_key = resp["resp"]["auth_key"]
+	return _success_response(request, {"user_id": user_id, "auth_key": auth_key, "username": username})
+
+def _error_response(request, error_msg):
+	return JsonResponse({'ok': False, 'error': error_msg})
+
+def _success_response(request, resp=None):
+	if resp: return JsonResponse({'ok': True, 'resp': resp})
+	else: return JsonResponse({'ok': True})

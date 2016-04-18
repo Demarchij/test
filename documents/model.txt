@@ -1,0 +1,31 @@
+Users 
+	Id
+	Email
+	comment Id
+	product id
+	passowrd
+	username
+	profile id (home page id )
+
+
+Comments 
+	user id made
+	product id about
+	star rating
+	comment text
+	comment id
+
+
+Item 
+	user id
+	id
+	file
+	name
+	discription
+	tags
+	comment id
+	lieceing 
+	product type
+
+tag
+	text	

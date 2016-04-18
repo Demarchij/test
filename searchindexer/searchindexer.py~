@@ -1,0 +1,22 @@
+from elasticsearch import Elasticsearch
+from kafka import KafkaConsumer
+import json, time
+
+es = Elasticsearch(['es'])
+
+# Receive queued items
+try: 
+	time.sleep(20)
+	item_consumer = KafkaConsumer('items', group_id='items_indexer', bootstrap_servers=['kafka:9092'])
+except:
+	time.sleep(20)
+	item_consumer = KafkaConsumer('items', group_id='items_indexer', bootstrap_servers=['kafka:9092'])
+
+while True:
+	changed = False
+	for item in item_consumer:
+		changed = True
+		new_listing = json.loads((item.value).decode('utf-8'))
+		# insert items into elastic search
+		es.index(index='items_index', doc_type='listing', id=new_listing['id'], body=new_listing)
+	if changed: es.indices.refresh(index='items_index')

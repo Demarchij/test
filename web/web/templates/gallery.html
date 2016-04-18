@@ -1,0 +1,117 @@
+{% load staticfiles %}
+{% include 'head.html' %}
+
+<body>
+{% include 'nav.html' %}
+    <!-- Page Content -->
+    <div class="container">
+
+        <div class="row">
+
+            <div class="col-md-3">
+                <p class="lead" style="font-weight:bolder;color:#484848">THE ARTIST TREE</p>
+                <div class="list-group">
+                    <a href="/" class="list-group-item" id="button_home">Home </a>
+                    <a href="/list" class="list-group-item" id="button_listview">Item Listing</a>
+                    <a href="#" class="list-group-item">TODO</a>
+                </div>
+            </div>
+
+{% if logged_in %}
+
+            <div class="col-md-9">
+
+		
+<form action="{% url 'submit' %}" method='POST'>
+  <fieldset class="form-group  col-xs-5">
+    <label >Title</label>
+    <input type="text" class="form-control" placeholder="Title" name='title' >
+  </fieldset>
+  <fieldset class="form-group">
+    <label >Tags</label>
+    <input type="text" class="form-control" placeholder="tag1, tag2, tag3" name='tags'>
+    <small class="text-muted">Tags are delimited by commas (we only process the first for now).</small>
+  </fieldset>
+  <fieldset class="form-group  col-xs-7">
+    <label >Filename</label>
+    <input type="text" class="form-control" placeholder="Image URL" name='filename'>
+    <small class="text-muted">We don't have actual image/music uploads implemented.</small>
+  </fieldset>
+  <fieldset class="form-group">
+    <label >Category</label>
+    <select class="form-control" name='category'>
+      <option>1</option>
+      <option>2</option>
+      <option>3</option>
+      <option>4</option>
+      <option>5</option>
+    </select>
+    <small class="text-muted">Will be implemented later.</small>
+  </fieldset>
+  <fieldset class="form-group col-xs-10">
+    <label>Description</label>
+    <textarea class="form-control" rows="3" name='description'></textarea>
+  </fieldset>
+  <hr>
+  <button type="submit" class="btn btn-lg btn-primary">Upload</button>
+</form>
+                </div>
+
+                <div class="row col-md-9" >
+		    {% block itemlist %}
+		    {% for i in items %}
+                    <div class="col-sm-4 col-lg-4 col-md-4">
+                        <div class="thumbnail">
+                            <img src="{{ i.filename }}" alt="">
+                            <div class="caption">
+                                <h4 class="pull-right">{{ i.tags.0.token }}</h4>
+                                <h4><a href="#">{{ i.owner.username }}</a>
+                                </h4>
+                                <p> {{ i.title }} <hr style="margin: 0px; margin-bottom: 10px; padding: 0px;"> {{ i.description }} </p>
+                            </div>
+                            <div class="ratings">
+                                <p class="pull-right">15 approvals</p>
+                                <p>
+                                    <span class="glyphicon glyphicon-star"></span>
+                                    <span class="glyphicon glyphicon-star"></span>
+                                    <span class="glyphicon glyphicon-star"></span>
+                                    <span class="glyphicon glyphicon-star"></span>
+                                    <span class="glyphicon glyphicon-star"></span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+		{% endfor %}
+		{% endblock %}
+
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+    <!-- /.container -->
+
+{% endif %}
+
+    <div class="container">
+
+        <hr>
+
+     {% include 'footer.html' %}
+
+    </div>
+    <!-- /.container -->
+
+     {% include 'scripts.html' %}
+
+    <script>
+
+    </script>
+
+</body>
+
+</html>

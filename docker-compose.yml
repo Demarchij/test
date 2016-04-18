@@ -1,0 +1,52 @@
+kafka:
+   image: spotify/kafka
+   environment:
+      ADVERTISED_HOST: kafka
+      ADVERTISED_PORT: 9092
+   hostname: kafka
+
+es:
+   image: elasticsearch:2.0
+   ports:
+      - "9200:9200"
+
+searchindexer:
+    image: tp33/django-docker:1.3
+    links:
+      - kafka:kafka
+      - es:es
+    volumes:
+       - ./searchindexer:/app
+    command: python searchindexer.py
+    
+isamodels:
+   image: tp33/django-docker:1.3
+   external_links:
+      - mysql:db
+   ports:
+      - "8001:8000"
+   volumes:
+      - ./models:/app
+   command: bash -c "python manage.py makemigrations && python manage.py migrate && python manage.py loaddata fixtures.json && mod_wsgi-express start-server --reload-on-changes models/wsgi.py"
+
+isaexp:
+   image: tp33/django-docker:1.3
+   links:
+      - isamodels:models-api
+      - kafka:kafka
+      - es:es
+   ports:
+      - "8002:8000"
+   volumes:
+      - ./exp:/app
+   command: "mod_wsgi-express start-server --reload-on-changes exp/wsgi.py"
+
+isaweb:
+   image: tp33/django-docker:1.3
+   links:
+      - isaexp:exp-api
+   ports:
+      - "8000:8000"
+   volumes:
+      - ./web:/app
+   command: "mod_wsgi-express start-server --reload-on-changes web/wsgi.py"

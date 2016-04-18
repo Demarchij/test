@@ -1,0 +1,79 @@
+from django.http import JsonResponse, HttpResponse
+from django.contrib.auth import hashers
+from django.contrib.auth.models import User as nUser
+from django.forms.models import model_to_dict
+from django import db
+from models import models
+from datetime import datetime, timedelta, timezone
+import urllib.request, urllib.parse, json
+
+def create_auth(request):
+    if request.method != 'POST': return _error_response(request, "must make POST request")
+    if 'user_id' not in request.POST: return _error_response(request, "missing user id")
+
+    # keep creating random passwords until we get a unique one
+    random_number = nUser.objects.make_random_password(length=100, allowed_chars='0123456789')
+    while models.Authenticator.objects.filter(auth_key=random_number):
+        random_number = nUser.objects.make_random_password(length=100, allowed_chars='0123456789')
+    auth = models.Authenticator(user_id=request.POST['user_id'], auth_key=random_number)
+    try: auth.save()
+    except db.Error: return _error_response(request, "db error: could not save authenticator")
+    return _success_response(request, auth.json())
+
+def delete_auth(request):
+    if request.method != 'GET': return _error_response(request, "must make GET request")
+    if 'auth_key' not in request.GET: return _error_response(request, "must provide auth key")
+    try: 
+        auth_key = request.GET['auth_key']
+        auth = models.Authenticator.objects.get(auth_key=auth_key)
+    except models.Authenticator.DoesNotExist: 
+        return _error_response(request, "auth not found")
+    auth.delete()
+    return _success_response(request, {'auth_deleted': auth_key})
+
+def verify_auth(request):
+    if request.method != 'GET': return _error_response(request, "must make GET request")
+    if 'auth_key' not in request.GET : return _error_response(request, "auth key must be provided")
+    auth_key = request.GET['auth_key']
+    try:
+        auth = models.Authenticator.objects.get(auth_key=auth_key)
+        # reject authenticators older than a week or so
+        if (datetime.now().replace(tzinfo=None) - auth.date_created.replace(tzinfo=None)).days > 8:
+            auth.delete()
+            return _error_response(request, "Your login has expired")
+        return _success_response(request, {'auth_key': auth_key, 'user_id': auth.user_id})
+    except models.Authenticator.DoesNotExist:
+        return _error_response(request, "auth not found")
+
+## returns an auth if the username and password match. Assume input is sanitized.
+def verify_user_password(request):
+    if request.method != 'GET': return _error_response(request, "must make GET request")
+    if 'username' not in request.GET or 'password' not in request.GET:
+        return _error_response(request, "must provide both username and password")
+    username = request.GET['username']
+    password = request.GET['password']
+
+    auth_key = None
+    try:
+        foundUser = models.User.objects.get(username=username)
+        if hashers.check_password(password, foundUser.password):
+            # create a new auth
+            data = urllib.parse.urlencode({'user_id': foundUser.id}).encode()
+            url = 'http://localhost:8000/api/v1/auth/create'
+            req = urllib.request.Request(url)
+            resp_json = urllib.request.urlopen(req, data=data).read().decode('utf-8')
+            resp = json.loads(resp_json)
+        if (resp["ok"] == False):
+            return _error_response(request, resp['error'])
+        if (resp["ok"] == True): auth_key = resp["resp"]["auth_key"]
+        else: return _error_response(request, "username and password do not match")
+    except models.User.DoesNotExist: return _error_response(request, "user not found")
+    return _success_response(request, {"user_id": foundUser.id, "auth_key": auth_key})
+
+
+def _success_response(request, resp=None):
+    if resp: return JsonResponse({'ok': True, 'resp': resp})
+    else: return JsonResponse({'ok': True})
+
+def _error_response(request, error_msg):
+    return JsonResponse({'ok': False, 'error': error_msg})

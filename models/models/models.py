@@ -1,0 +1,55 @@
+from django.db import models
+from datetime import datetime, timezone
+
+class User(models.Model):
+	username = models.CharField(max_length=127, unique=True)
+	email	 = models.CharField(max_length=255, unique=True)
+	password = models.CharField(max_length=255)
+	phone	 = models.CharField(max_length=20, blank=True)
+	def json(self):
+		return { 'username' : self.username,
+			 'email' : self.email,
+			 'phone' : self.phone }
+
+class Tag(models.Model):
+	token		= models.CharField(max_length=50, unique=True)
+	def json(self):
+		return { 'token' : self.token }
+
+class ItemCategory(models.Model):
+	category 	= models.CharField(max_length=50, unique=True)
+	def json(self):
+		return { 'category' : self.category }
+
+class Item(models.Model):
+	owner		 = models.ForeignKey(User, on_delete=models.CASCADE, related_name='item')
+	title		 = models.CharField(max_length=127)
+	description	 = models.TextField(blank=True)
+	filename	 = models.CharField(max_length=255)
+	size		 = models.IntegerField(blank=True)
+	date_created	 = models.DateTimeField(default=datetime.now, blank=True)
+	tags		 = models.ManyToManyField(Tag, related_name='items', blank=True)
+	category	 = models.ManyToManyField(ItemCategory, related_name='items', blank=True)
+	def json(self):
+		return { 'owner' : self.owner.json(),
+			 'title' : self.title,
+			 'description' : self.description,
+			 'filename' : self.filename,
+			 'size' : self.size,
+			 'date_created' : self.date_created,
+			 'tags' : [t.json() for t in self.tags.all()],
+			 'category' : [c.json() for c in self.category.all()] }
+
+class Comment(models.Model):
+	owner = models.ForeignKey(User, related_name='comment')
+	item  = models.ForeignKey(Item, on_delete=models.CASCADE, related_name='comment')
+	text  = models.CharField(max_length=511)
+
+class Authenticator(models.Model):
+	auth_key = models.CharField(max_length=255, primary_key=True)
+	user_id = models.IntegerField()
+	date_created = models.DateTimeField(default=datetime.now)
+	def json(self):
+		return { 'auth_key' : self.auth_key,
+			 'user_id' : self.user_id,
+			 'date_created' : self.date_created }
