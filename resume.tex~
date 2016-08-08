@@ -1,0 +1,132 @@
+% resume.tex
+%
+% (c) 2002 Matthew Boedicker <mboedick@mboedick.org> (original author) http://mboedick.org
+% (c) 2003-2007 David J. Grant <davidgrant-at-gmail.com> http://www.davidgrant.ca
+%
+% This work is licensed under the Creative Commons Attribution-ShareAlike 3.0 Unported License. To view a copy of this license, visit http://creativecommons.org/licenses/by-sa/3.0/ or send a letter to Creative Commons, 171 Second Street, Suite 300, San Francisco, California, 94105, USA.
+
+\documentclass[letterpaper,11pt]{article}
+
+%-----------------------------------------------------------
+%Margin setup
+
+\setlength{\voffset}{0.1in}
+\setlength{\paperwidth}{8.5in}
+\setlength{\paperheight}{11in}
+\setlength{\headheight}{0in}
+\setlength{\headsep}{0in}
+\setlength{\textheight}{11in}
+\setlength{\textheight}{9.5in}
+\setlength{\topmargin}{-0.25in}
+\setlength{\textwidth}{7in}
+\setlength{\topskip}{0in}
+\setlength{\oddsidemargin}{-0.25in}
+\setlength{\evensidemargin}{-0.25in}
+%-----------------------------------------------------------
+%\usepackage{fullpage}
+\usepackage{shading}
+%\textheight=9.0in
+\pagestyle{empty}
+\raggedbottom
+\raggedright
+\setlength{\tabcolsep}{0in}
+
+%-----------------------------------------------------------
+%Custom commands
+\newcommand{\resitem}[1]{\item #1 \vspace{-2pt}}
+\newcommand{\resheading}[1]{{\large \parashade[.9]{sharpcorners}{\textbf{#1 \vphantom{p\^{E}}}}}}
+\newcommand{\ressubheading}[4]{
+\begin{tabular*}{6.5in}{l@{\extracolsep{\fill}}r}
+		\textbf{#1} & #2 \\
+		\textit{#3} & \textit{#4} \\
+\end{tabular*}\vspace{-6pt}}
+%-----------------------------------------------------------
+
+
+\begin{document}
+
+\begin{tabular*}{7in}{l@{\extracolsep{\fill}}r}
+\textbf{\Large Joseph Demarchi}  & 540-414-5316\\
+1260 Fendwick Plantion Dr &  jsd2ej@virginia.edu \\
+John Island, SC 29455 & \\
+\end{tabular*}
+\\
+
+\vspace{0.1in}
+
+\resheading{Education}
+\begin{itemize}
+\item
+	\ressubheading{University of Virginia}{Charlottesville, VA}{BS, Computer Science }{Aug. 2011 - Aug. 2016}
+	\begin{itemize}
+		\resitem{Relevant courses: Operating Systems, Program and Data Representation , Algorithms, Database Systems, Internet Scale Applications, Advanced Software Development}
+	\end{itemize}
+
+
+\end{itemize}
+
+\resheading{Work Experience}
+\begin{itemize}
+\item
+	\ressubheading{Staples}{Charleston, SC; Charlottesville, VA}{Associate}{Jan. 2015 - Aug. 2016}
+	\begin{itemize}
+		\resitem{Repair Computers, Sell Electronics and Stock Shelves; Help costumers }
+	\end{itemize}
+
+\item 
+	\ressubheading{Hess}{Charleston, SC}{Night Associate}{May 2014 - Aug. 2014}
+	\begin{itemize}
+		%\resitem{Part of a group working to produce a Bluetooth-LAN Access Point and other OEM products.}
+		\resitem{Team Supervisor at times, cooking the breakfast, Closing the day paper work}
+	\end{itemize}
+
+\end{itemize}
+
+\resheading{School and Personal Projects }
+\begin{itemize}
+\item
+	\ressubheading{Meals on Wheels Scheduling Web App }{Fluvanna, VA}{Fluvanna Meals on Wheels}{}
+	\begin{itemize}
+		\resitem{Designed and implemented a scheduling/general use database for the local Meals on Wheels using Django.}
+	\end{itemize}
+
+\item
+	\ressubheading{Drop Box Clone}{Charlottesville, VA}{University Of Virginia}{}
+	\begin{itemize}
+		\resitem{Designed and implemented a drop box clone. Used Python Flask and tkinter to build it.}
+
+	\end{itemize}
+
+\item
+	\ressubheading{Web Store to buy and sell art}{Charlottesville, VA}{University Of Virginia}{}
+	\begin{itemize}
+		\resitem{Designed and implemented a Web Store using Django and Docker Containers for scalability.}
+
+	\end{itemize}
+
+
+\end{itemize}
+
+\resheading {Other:}
+
+\begin{itemize}
+\item
+	\ressubheading{Languages:}{}{}{}
+		\begin{itemize}
+			\resitem{C/C++, LaTeX, Java, Python,Django,JavaScript, PHP, MySQL, sqlite}
+		\end{itemize}
+\item	
+	\ressubheading{Miscellaneous:}{}{}{}
+		\begin{itemize}
+			\resitem{strong verbal and written communication skills, excellent troubleshooting and debugging skills, exceptional problem solving skills, good teams skills}
+			\resitem{Treasurer of Zeta Beta Tau, Phi Epsilon chapter 2013-2015}
+		\end{itemize}
+		
+\end{itemize}
+
+
+
+
+
+\end{document}
+
